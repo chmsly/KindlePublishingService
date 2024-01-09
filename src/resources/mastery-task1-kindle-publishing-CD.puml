@@ -2,32 +2,38 @@
 class GetBookActivity {
 - recommendationServiceClient : RecommendationsServiceClient
 - catalogDao : CatalogDao
++ execute(request : GetBookRequest) : GetBookResponse
 }
+
 class GetPublishingStatusActivity {
 }
 
 class RemoveBookFromCatalogActivity {
++ execute(request : RemoveBookFromCatalogRequest) : RemoveBookFromCatalogResponse
 }
 
 class SubmitBookForPublishingActivity {
 - publishingStatusDao : PublishingStatusDao
++ execute(request : SubmitBookForPublishingRequest) : SubmitBookForPublishingResponse
 }
 
 class RecommendationsServiceClient {
 }
 
 class CatalogDao {
++ dynamoDBMapper : DynamoDBMapper
 }
 
 class PublishingStatusDao {
++ dynamoDBMapper : DynamoDBMapper
 }
 
 class PublishingStatusItem {
-
 - @DynamoDBHashKey publishingRecordId : String
 - @DynamoDBRangeKey status : PublishingRecordStatus
 - statusMessage : String
 - bookId : String
+
 }
 
 class CatalogItemVersion {
@@ -43,15 +49,20 @@ class CatalogItemVersion {
 enum BookGenre {
 }
 
-exception BookNotFoundException {
+class BookNotFoundException {
 }
 
-exception PublishingStatusNotFoundException {
+class PublishingStatusNotFoundException {
 }
 
-
-GetBookActivity ..> RecommendationsServiceClient
-GetBookActivity ..> CatalogDao
-CatalogDao -- BookNotFoundException
-SubmitBookForPublishingActivity ..> PublishingStatusDao
+GetBookActivity --> RecommendationsServiceClient
+GetBookActivity --> CatalogDao
+SubmitBookForPublishingActivity --> PublishingStatusDao
+RemoveBookFromCatalogActivity --> CatalogDao
+CatalogDao --> BookNotFoundException
+CatalogItemVersion --> BookGenre
+PublishingStatusItem --> PublishingRecordStatus
+CatalogItemVersion --> CatalogDao
+PublishingStatusItem --> PublishingStatusDao
 @enduml
+
