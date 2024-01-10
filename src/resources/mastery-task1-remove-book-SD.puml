@@ -1,6 +1,4 @@
 @startuml
-
-
 actor Client
 participant RemoveBookFromCatalogActivity
 participant CatalogDao
@@ -8,13 +6,15 @@ participant CatalogItemVersion
 
 
 Client -> RemoveBookFromCatalogActivity: removeBookFromCatalog(bookId)
+Client -> RemoveBookFromCatalogActivity: execute(bookId)
 RemoveBookFromCatalogActivity -> CatalogDao: getBookFromCatalog(bookId)
-CatalogDao -> CatalogItemVersion: getBook(bookId)
+CatalogDao -> CatalogItemVersion: getBook(bookId) : BookNotFoundException
+
 CatalogItemVersion --> CatalogDao: return catalogItem
 CatalogDao -->RemoveBookFromCatalogActivity: return catalogItem
 RemoveBookFromCatalogActivity -> RemoveBookFromCatalogActivity: setInactive(catalogItem)
 RemoveBookFromCatalogActivity ->CatalogDao: saveInactiveStatus(catalogItem)
 CatalogDao --> RemoveBookFromCatalogActivity: return response
-RemoveBookFromCatalogActivity -> Client: return response
+RemoveBookFromCatalogActivity -> Client: RemoveBookFromCatalogResponse
 
 @enduml

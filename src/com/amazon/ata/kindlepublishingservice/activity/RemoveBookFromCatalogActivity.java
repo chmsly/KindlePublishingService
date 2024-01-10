@@ -19,7 +19,7 @@ public class RemoveBookFromCatalogActivity {
     public RemoveBookFromCatalogResponse execute(RemoveBookFromCatalogRequest removeBookFromCatalogRequest) {
         CatalogItemVersion catalogItem = catalogDao.getBookFromCatalog(removeBookFromCatalogRequest.getBookId());
         catalogItem.setInactive(true);
-//        catalogDao.saveInactiveStatus(catalogItem);
+        catalogDao.saveInactiveStatus(catalogItem);
         return null;
     }
 }
