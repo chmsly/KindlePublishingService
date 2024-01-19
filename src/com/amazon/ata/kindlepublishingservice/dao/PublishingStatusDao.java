@@ -7,8 +7,10 @@ import com.amazon.ata.kindlepublishingservice.utils.KindlePublishingUtils;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
+import com.amazonaws.services.dynamodbv2.datamodeling.QueryResultPage;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import javax.inject.Inject;
 
@@ -42,6 +44,9 @@ public class PublishingStatusDao {
     public PublishingStatusItem setPublishingStatus(String publishingRecordId,
                                                     PublishingRecordStatus publishingRecordStatus,
                                                     String bookId) {
+
+
+
         return setPublishingStatus(publishingRecordId, publishingRecordStatus, bookId, null);
     }
 
@@ -63,10 +68,10 @@ public class PublishingStatusDao {
         String statusMessage = KindlePublishingUtils.generatePublishingStatusMessage(publishingRecordStatus);
         if (StringUtils.isNotBlank(message)) {
             statusMessage = new StringBuffer()
-                .append(statusMessage)
-                .append(ADDITIONAL_NOTES_PREFIX)
-                .append(message)
-                .toString();
+                    .append(statusMessage)
+                    .append(ADDITIONAL_NOTES_PREFIX)
+                    .append(message)
+                    .toString();
         }
 
         PublishingStatusItem item = new PublishingStatusItem();
@@ -76,5 +81,22 @@ public class PublishingStatusDao {
         item.setBookId(bookId);
         dynamoDbMapper.save(item);
         return item;
+    }
+
+    public List<PublishingStatusItem> getPublishingStatuses(String publishingRecordId) {
+        PublishingStatusItem publishingStatusItem = new PublishingStatusItem();
+        publishingStatusItem.setPublishingRecordId(publishingRecordId);
+
+        // (PublishingStatusDao)look up all published status items (DynamoDB)
+        DynamoDBQueryExpression<PublishingStatusItem> queryExpression = new DynamoDBQueryExpression<PublishingStatusItem>()
+                .withHashKeyValues(publishingStatusItem);
+
+        QueryResultPage<PublishingStatusItem> queryResults = dynamoDbMapper.queryPage(PublishingStatusItem.class, queryExpression);
+        List<PublishingStatusItem> publishingStatusItems = queryResults.getResults();
+        if (publishingStatusItems.isEmpty()) {
+            throw new PublishingStatusNotFoundException(String.format("No publishing status found for id: %s", publishingRecordId));
+        }
+        // return publishing status items
+        return publishingStatusItems;
     }
 }
