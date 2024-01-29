@@ -87,7 +87,7 @@ public class PublishingStatusDao {
         PublishingStatusItem publishingStatusItem = new PublishingStatusItem();
         publishingStatusItem.setPublishingRecordId(publishingRecordId);
 
-        // (PublishingStatusDao)look up all published status items (DynamoDB)
+        // (PublishingStatusDao)look up all published status items
         DynamoDBQueryExpression<PublishingStatusItem> queryExpression = new DynamoDBQueryExpression<PublishingStatusItem>()
                 .withHashKeyValues(publishingStatusItem);
 

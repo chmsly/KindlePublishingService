@@ -1,6 +1,7 @@
 package com.amazon.ata.kindlepublishingservice.dao;
 
 import com.amazon.ata.kindlepublishingservice.dynamodb.models.CatalogItemVersion;
+import com.amazon.ata.kindlepublishingservice.enums.PublishingRecordStatus;
 import com.amazon.ata.kindlepublishingservice.exceptions.BookNotFoundException;
 import com.amazon.ata.kindlepublishingservice.publishing.KindleFormattedBook;
 import com.amazon.ata.kindlepublishingservice.utils.KindlePublishingUtils;
@@ -15,7 +16,6 @@ import javax.inject.Inject;
 public class CatalogDao {
 
     private final DynamoDBMapper dynamoDbMapper;
-    private KindlePublishingUtils kindlePublishingUtils = new KindlePublishingUtils();
 
     /**
      * Instantiates a new CatalogDao object.
@@ -24,7 +24,9 @@ public class CatalogDao {
      */
     @Inject
     public CatalogDao(DynamoDBMapper dynamoDbMapper) {
+
         this.dynamoDbMapper = dynamoDbMapper;
+
     }
 
     /**
@@ -43,22 +45,15 @@ public class CatalogDao {
         return book;
     }
 
-    public void validateBookExists(String bookId) {
-        CatalogItemVersion book = getLatestVersionOfBook(bookId);
-        if (book == null) {
-            throw new BookNotFoundException(String.format("No book found for id: %s", bookId));
-        }
-    }
-
     // Returns null if no version exists for the provided bookId
     private CatalogItemVersion getLatestVersionOfBook(String bookId) {
         CatalogItemVersion book = new CatalogItemVersion();
         book.setBookId(bookId);
 
         DynamoDBQueryExpression<CatalogItemVersion> queryExpression = new DynamoDBQueryExpression()
-            .withHashKeyValues(book)
-            .withScanIndexForward(false)
-            .withLimit(1);
+                .withHashKeyValues(book)
+                .withScanIndexForward(false)
+                .withLimit(1);
 
         List<CatalogItemVersion> results = dynamoDbMapper.query(CatalogItemVersion.class, queryExpression);
         if (results.isEmpty()) {
@@ -66,12 +61,43 @@ public class CatalogDao {
         }
         return results.get(0);
     }
-
     public CatalogItemVersion saveInactiveStatus(CatalogItemVersion book) {
         dynamoDbMapper.save(book);
         return book;
     }
+    public void validateBookExists(String bookId) {
+        CatalogItemVersion book = getLatestVersionOfBook(bookId);
+        if (book == null) {
+            throw new BookNotFoundException(String.format("No book found for id: %s", bookId));
+        }
+    }
+    public CatalogItemVersion createOrUpdateBook(KindleFormattedBook book) throws BookNotFoundException {
+        if (book.getBookId() == null) {
+            String bookId = KindlePublishingUtils.generateBookId();
+            CatalogItemVersion newBook = new CatalogItemVersion();
+            newBook.setBookId(bookId);
+            newBook.setVersion(1);
+            newBook.setTitle(book.getTitle());
+            newBook.setGenre(book.getGenre());
+            newBook.setAuthor(book.getAuthor());
+            newBook.setText(book.getText());
+            dynamoDbMapper.save(newBook);
+            return getLatestVersionOfBook(newBook.getBookId());
+        }
 
-
-
+        validateBookExists(book.getBookId());
+        CatalogItemVersion latest = getLatestVersionOfBook(book.getBookId());
+        latest.setVersion(latest.getVersion() + 1);
+        softDeleteBookFromCatalog(latest.getBookId());
+        dynamoDbMapper.save(latest);
+        return getLatestVersionOfBook(latest.getBookId());
+    }
+    public void softDeleteBookFromCatalog(String bookId) {
+        CatalogItemVersion book = getLatestVersionOfBook(bookId);
+        if (book != null && !book.isInactive()) {
+            book.setInactive(true);
+            dynamoDbMapper.save(book);
+        }
+        else throw new BookNotFoundException("book was not found");
+    }
 }
